@@ -21,7 +21,7 @@ import lombok.Getter;
  * Created by dkstuart on 8/11/15.
  */
 public class TotalStat implements Statistic {
-    private Object mutex = new Object();
+    private Mutex mutex = new Mutex();
     @Getter
     private String name;
     private double total = 0l;

@@ -20,12 +20,13 @@ package com.coredot.jdebugconsole;/**
 import javafx.application.Application;
 import javafx.application.Platform;
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class Debug {
+public class Debug implements Serializable {
     private static DebugApplication instance = null;
     private static Timer timer = new Timer();
     private static HashMap<String, Object> keyValueMap = new HashMap<>();
@@ -46,7 +47,7 @@ public class Debug {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            timer.scheduleAtFixedRate(new TimerTask() {
+            timer.scheduleAtFixedRate(new Task() {
                 @Override
                 public void run() {
                     getApp();
@@ -86,5 +87,9 @@ public class Debug {
             keyValueMap.put(stat.getName(), stat);
         }
     }
+
+    private static class DebugTimer extends Timer implements Serializable {}
+
+    private abstract static class Task extends TimerTask implements Serializable {}
 
 }

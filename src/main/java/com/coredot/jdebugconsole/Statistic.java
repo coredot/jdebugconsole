@@ -15,9 +15,11 @@
 
 package com.coredot.jdebugconsole;
 
+import java.io.Serializable;
+
 /**
  * Created by dkstuart on 8/14/15.
  */
-public interface Statistic {
+public interface Statistic extends Serializable {
     String getName();
 }

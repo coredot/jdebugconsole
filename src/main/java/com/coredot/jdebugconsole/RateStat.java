@@ -20,6 +20,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import lombok.Getter;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
@@ -27,28 +28,23 @@ import java.util.concurrent.TimeUnit;
  * Created by dkstuart on 8/11/15.
  */
 public class RateStat implements Statistic {
-    private final LoadingCache<Long, Number> values;
-    private Object mutex = new Object();
+    private final Cache cache;
+    private final Mutex mutex = new Mutex();
     @Getter
     private String name;
     private long count = 0l;
 
     public RateStat(String name) {
         this.name = name;
-        values = CacheBuilder.newBuilder()
+        cache = new Cache(CacheBuilder.newBuilder()
                 .expireAfterWrite(10, TimeUnit.SECONDS)
-                .build(new CacheLoader<Long, Number>() {
-                    @Override
-                    public Number load(Long key) throws Exception {
-                        return new Integer(0);
-                    }
-                });
+                .build(new RateCacheLoader()));
     }
 
     public String toString() {
         StringBuilder out = new StringBuilder();
         synchronized (mutex) {
-            Collection<Number> set = values.asMap().values();
+            Collection<Number> set = cache.getCache().asMap().values();
             double total = set.stream().mapToDouble(value -> value.doubleValue()).sum();
             out.append("Rate: ");
             out.append(total / 10);
@@ -63,7 +59,23 @@ public class RateStat implements Statistic {
     public void add(Number value) {
         synchronized (mutex) {
             count++;
-            values.put(System.currentTimeMillis(), value.doubleValue());
+            cache.getCache().put(System.currentTimeMillis(), value.doubleValue());
+        }
+    }
+
+    private static class Cache implements Serializable {
+        @Getter
+        LoadingCache<Long, Number> cache;
+
+        public Cache(LoadingCache<Long, Number> cache) {
+            this.cache = cache;
+        }
+    }
+
+    private static class RateCacheLoader extends CacheLoader<Long, Number> implements Serializable {
+        @Override
+        public Number load(Long aLong) throws Exception {
+            return new Integer(0);
         }
     }
 
