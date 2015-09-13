@@ -13,9 +13,7 @@
  * See the License for the specific language governing permissions and limitations under the License.
  */
 
-package com.coredot.jdebugconsole;/**
- * Created by dkstuart on 8/11/15.
- */
+package com.coredot.jdebugconsole;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -25,15 +23,21 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Debug implements Serializable {
+    private static final HashMap<String, Object> keyValueMap = new HashMap<>();
     private static DebugApplication instance = null;
     private static Timer timer = new Timer();
-    private static HashMap<String, Object> keyValueMap = new HashMap<>();
     private static int refreshRate = 500;
+    private static AtomicBoolean enableGUI = new AtomicBoolean(true);
 
     public static void setRefreshRate(int refreshRate) {
         Debug.refreshRate = refreshRate;
+    }
+
+    public static void enableGUI(boolean enabled) {
+        Debug.enableGUI.set(enabled);
     }
 
     private static DebugApplication getApp() {
@@ -70,21 +74,27 @@ public class Debug implements Serializable {
     }
 
     public static void println(String message) {
-        getApp();
-        Platform.runLater(() -> getApp().getController().println(message));
+        if (enableGUI.get()) {
+            getApp();
+            Platform.runLater(() -> getApp().getController().println(message));
+        }
     }
 
     public static void setKeyValue(String key, String value) {
-        getApp();
-        synchronized (keyValueMap) {
-            keyValueMap.put(key, value);
+        if (enableGUI.get()) {
+            getApp();
+            synchronized (keyValueMap) {
+                keyValueMap.put(key, value);
+            }
         }
     }
 
     public static void setStatistic(Statistic stat) {
-        getApp();
-        synchronized (keyValueMap) {
-            keyValueMap.put(stat.getName(), stat);
+        if (enableGUI.get()) {
+            getApp();
+            synchronized (keyValueMap) {
+                keyValueMap.put(stat.getName(), stat);
+            }
         }
     }
 

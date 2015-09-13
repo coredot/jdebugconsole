@@ -24,17 +24,16 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
-public class RateStat implements Statistic {
+public class TimeStat implements Statistic {
     private final Cache cache;
     private final Mutex mutex = new Mutex();
     @Getter
     private String name;
     private long count = 0l;
-    private int seconds;
+    private long total = 0l;
 
-    public RateStat(String name, int seconds) {
+    public TimeStat(String name, int seconds) {
         this.name = name;
-        this.seconds = seconds;
         cache = new Cache(CacheBuilder.newBuilder()
                 .expireAfterWrite(seconds, TimeUnit.SECONDS)
                 .build(new RateCacheLoader()));
@@ -43,36 +42,49 @@ public class RateStat implements Statistic {
     public String toString() {
         StringBuilder out = new StringBuilder();
         synchronized (mutex) {
-            Collection<Number> set = cache.getCache().asMap().values();
-            double total = set.stream().mapToDouble(Number::doubleValue).sum();
-            out.append("Rate: ");
-            out.append(JMath.round(total / seconds, 2));
-            out.append("/sec, Collected: ");
+            Collection<Double> set = cache.getCache().asMap().values();
+            double total = set.stream().mapToLong(value -> value.longValue()).sum();
+            out.append("Mean: ");
+            out.append(JMath.round(total / set.size(), 4));
+            out.append("ms, Total: ");
+            out.append(String.format("%02d:%02d:%02d",
+                    TimeUnit.MILLISECONDS.toHours(this.total),
+                    TimeUnit.MILLISECONDS.toMinutes(this.total) -
+                            TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(this.total)),
+                    TimeUnit.MILLISECONDS.toSeconds(this.total) -
+                            TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(this.total))));
+            out.append(", Collected: ");
             out.append(count);
         }
         return out.toString();
     }
 
-    public void add(Number value) {
+    protected void stop(long span) {
         synchronized (mutex) {
             count++;
-            cache.getCache().put(System.currentTimeMillis(), value.doubleValue());
+            double value = span / 1000000d;
+            total += value;
+            cache.getCache().put(System.currentTimeMillis(), value);
         }
+    }
+
+    public StopWatch start() {
+        return new StopWatch(this);
     }
 
     private static class Cache implements Serializable {
         @Getter
-        LoadingCache<Long, Number> cache;
+        LoadingCache<Long, Double> cache;
 
-        public Cache(LoadingCache<Long, Number> cache) {
+        public Cache(LoadingCache<Long, Double> cache) {
             this.cache = cache;
         }
     }
 
-    private static class RateCacheLoader extends CacheLoader<Long, Number> implements Serializable {
+    private static class RateCacheLoader extends CacheLoader<Long, Double> implements Serializable {
         @Override
-        public Number load(Long aLong) throws Exception {
-            return new Integer(0);
+        public Double load(Long aLong) throws Exception {
+            return 0d;
         }
     }
 

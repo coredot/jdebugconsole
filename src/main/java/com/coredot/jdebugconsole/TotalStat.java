@@ -17,11 +17,8 @@ package com.coredot.jdebugconsole;
 
 import lombok.Getter;
 
-/**
- * Created by dkstuart on 8/11/15.
- */
 public class TotalStat implements Statistic {
-    private Mutex mutex = new Mutex();
+    private final Mutex mutex = new Mutex();
     @Getter
     private String name;
     private double total = 0l;
@@ -37,8 +34,8 @@ public class TotalStat implements Statistic {
             out.append("Total: ");
             out.append(total);
             out.append(", Mean: ");
-            out.append(total / count);
-            out.append(", Hits: ");
+            out.append(JMath.round(total / count, 2));
+            out.append(", Collected: ");
             out.append(count);
         }
         return out.toString();
